@@ -36,7 +36,7 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 	if (GetNumPlayers() == 2)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Next Level!"));
-		//NextLevel();
+		NextLevel();
 	}
 }
 

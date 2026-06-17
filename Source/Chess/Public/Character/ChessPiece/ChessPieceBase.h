@@ -17,53 +17,12 @@ class UAnimMontage;
 class AMyChessPlayerController;
 class UWidgetComponent;
 class UPieceBattleWidget;
+class UPiecePrimaryDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnHPChanged,
 	float, NewHP
 );
-
-UENUM(BlueprintType)
-enum class EChessPieceType : uint8
-{
-	None UMETA(DisplayName = "None"),
-
-	Pawn UMETA(DisplayName = "Pawn"),
-
-	Rook UMETA(DisplayName = "Rook"),
-
-	Knight UMETA(DisplayName = "Knight"),
-
-	Bishop UMETA(DisplayName = "Bishop"),
-
-	Queen UMETA(DisplayName = "Queen"),
-
-	King UMETA(DisplayName = "King")
-};
-
-USTRUCT(BlueprintType)
-struct FChessBattleStat
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MaxHP = 100.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Attack = 10.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Defense = 5.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MoveSpeed = 400.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackSpeed = 1.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackRange = 150.f;
-};
 
 UCLASS()
 class CHESS_API AChessPieceBase : public ACharacter
@@ -113,6 +72,9 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHP)
 	float CurrentHP;
 
+	UPROPERTY(EditAnywhere, Category = "Data")
+	TObjectPtr<UPiecePrimaryDataAsset> PieceData;
+
 	UFUNCTION()
 	void OnRep_CurrentHP();
 
@@ -146,19 +108,6 @@ public:
 	void DoJumpStart();
 
 	void DoJumpEnd();
-
-	// 콤보 공격
-	/*
-	void Attack();
-
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_Attack();
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayAttackMontage();
-	*/
-
-	// ===== 서버 공격 시작 =====
 	
 	// 입력
 	void Attack();
@@ -200,17 +149,6 @@ public:
 	int32 PieceComboIndex = 0;
 
 public:
-
-	//int32 PieceComboIndex;
-
-	//bool bIsAttacking;
-	//bool bComboInput;
-
-	/// <summary>
-	/// /////////////////////////
-	/// </summary>
-public:
-
 	// 서버에서 호출하는 사망 함수
 	UFUNCTION()
 	void Die();

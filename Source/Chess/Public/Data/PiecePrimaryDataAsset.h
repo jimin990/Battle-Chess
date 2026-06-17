@@ -4,8 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "System/ChessTypes.h"
 #include "PiecePrimaryDataAsset.generated.h"
 
+class UAnimeMontage;
+class USkeletalMesh;
 /**
  * 
  */
@@ -14,4 +17,16 @@ class CHESS_API UPiecePrimaryDataAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 	
+public:
+	 UPROPERTY(EditAnywhere)
+	 TObjectPtr<UAnimMontage> AttackMontage;
+
+	 UPROPERTY(EditAnywhere)
+	 EChessPieceType PieceType;
+
+	 UPROPERTY(EditAnywhere)
+	 FChessBattleStat PieceStat;
+
+	 UPROPERTY(EditAnywhere)
+	 TObjectPtr<USkeletalMesh> Mesh;
 };

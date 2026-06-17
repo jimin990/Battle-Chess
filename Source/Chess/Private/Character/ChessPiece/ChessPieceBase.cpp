@@ -22,6 +22,7 @@
 #include "EnhancedInputSubsystemInterface.h"
 #include "Components/WidgetComponent.h"
 #include "UI/PieceBattleWidget.h"
+#include "Data/PiecePrimaryDataAsset.h"
 
 // Sets default values
 AChessPieceBase::AChessPieceBase()
@@ -33,12 +34,10 @@ AChessPieceBase::AChessPieceBase()
 	NetDormancy = ENetDormancy::DORM_Never;
 	RootComponent = GetCapsuleComponent();
 
-
 	// 콤보 공격
 	PieceComboIndex = 0;
 	bIsAttacking = false;
 	bComboInput = false;
-
 
 	GetCapsuleComponent()->InitCapsuleSize(84.0f, 180.0f);
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn"));
@@ -77,14 +76,11 @@ AChessPieceBase::AChessPieceBase()
 	bUseControllerRotationRoll = false;
 
 	GetCharacterMovement()->bOrientRotationToMovement = false;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;        // 최고 속도
 	GetCharacterMovement()->JumpZVelocity = 500.f; // 점프 속도
 	GetCharacterMovement()->AirControl = 0.5f; // 0~1, 공중 이동 민감도
 
 	// 임시로 위치 초기화
 	OwnIndex = 0;
-
-	CurrentHP = Stat.MaxHP;
 
 	// 컨트롤러 즉 Possess가 안되있더라도 이동가능
 	GetCharacterMovement()->bRunPhysicsWithNoController = true;
@@ -114,24 +110,11 @@ AChessPieceBase::AChessPieceBase()
 		JumpAction = JumpActionPtr.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UInputAction> AttackActionPtr(TEXT("/Game/Chess/ChessGame/ChessPieces/Input/IA_Attack"));
-	if (AttackActionPtr.Succeeded())
-	{
-		AttackAction = AttackActionPtr.Object;
-	}
-
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> AttackMontagePtr(TEXT("/Game/Chess/ChessGame/ChessPieces/Anims/AM_AttackMontage"));
-	if (AttackMontagePtr.Succeeded())
-	{
-		AttackMontage = AttackMontagePtr.Object;
-	}
-
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeadMontagePtr(TEXT("/Game/Chess/ChessGame/ChessPieces/Anims/Montages/AM_ChessDead"));
 	if (DeadMontagePtr.Succeeded())
 	{
 		DeadMontage = DeadMontagePtr.Object;
 	}
-
 
 	//UI
 	PieceBattleWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
@@ -151,7 +134,6 @@ AChessPieceBase::AChessPieceBase()
 	PieceBattleWidgetComp->SetVisibility(false);
 
 	// Color
-
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> WhiteMaterialPtr(TEXT("/Game/Chess/ChessGame/ChessPieces/Mesh/MI_White1"));
 	if (WhiteMaterialPtr.Succeeded())
 	{
@@ -244,6 +226,24 @@ void AChessPieceBase::BeginPlay()
 			&UPieceBattleWidget::UpdateHp
 		);
 	}
+
+	// 데이터 값 적용
+	if (PieceData)
+	{
+		AttackMontage = PieceData->AttackMontage;
+		Stat = PieceData->PieceStat;
+		PieceType = PieceData->PieceType;
+		GetMesh()->SetSkeletalMesh(PieceData->Mesh);
+
+		// 최고 속도
+		GetCharacterMovement()->MaxWalkSpeed = PieceData->PieceStat.MoveSpeed;        
+
+		CurrentHP = PieceData->PieceStat.MaxHP;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PieceData is null"));
+	}
 }
 
 // Called every frame
@@ -282,7 +282,6 @@ void AChessPieceBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 			LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 		{
 			Subsystem->ClearAllMappings();
-			//Subsystem->RemoveMappingContext(PC->CameraIMC);
 			Subsystem->AddMappingContext(PC->PieceIMC, 0);
 		}
 	}
@@ -687,7 +686,6 @@ void AChessPieceBase::GetLifetimeReplicatedProps(
 
 void AChessPieceBase::Multicast_ColorChanged_Implementation()
 {
-
 	ColorChange();
 }
 

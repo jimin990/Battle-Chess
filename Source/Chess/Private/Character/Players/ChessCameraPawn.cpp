@@ -19,9 +19,6 @@ AChessCameraPawn::AChessCameraPawn()
 	bReplicates = true;
 	SetReplicateMovement(true);
 
-	//AutoPossessPlayer = EAutoReceiveInput::Disabled;
-	//AutoPossessAI = EAutoPossessAI::Disabled;
-
 	RootSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootScene"));
 	RootComponent = RootSceneComponent; 
 
@@ -31,13 +28,6 @@ AChessCameraPawn::AChessCameraPawn()
 
 	CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	CameraComponent->bUsePawnControlRotation = false;
-
-
-	//bUseControllerRotationYaw = false;
-	//bUseControllerRotationPitch = false;
-	//bUseControllerRotationRoll = false;
-
-	//CameraComponent->FieldOfView = 60.0f;
 }
 
 // Called when the game starts or when spawned

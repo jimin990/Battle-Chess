@@ -186,4 +186,18 @@ public: /*--------------------------- 게임 페이즈 ---------------------------*/
 	// 모든 플레이어에게 페이드 아웃
 	void PlayGlobalFade();
 	
+// Debug
+public:
+	// 배팅 페이즈로 변경  - 전투 중이면 변경 불가.
+	UFUNCTION()
+	void DebugChangeToBettingPhase(int32 AttackerIndex, int32 DefenderIndex);
+
+	UFUNCTION()
+	void DebugChangeToBattlePhase(int32 AttackerIndex, int32 DefenderIndex, float AttackerBattleTime, float DefenderBattleTime);
+
+	UFUNCTION()
+	void DebugEndBattle(bool bAttackerWin);
+
+	UFUNCTION()
+	void DebugEndGame(EChessTeam WinnerTeam);
 };

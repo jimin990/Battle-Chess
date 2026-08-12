@@ -1005,7 +1005,7 @@ void ANewChessGameMode::FinishBattlePhase()
 		}, 3, false);
 }
 
-// 반드시 나중에 return EChessTeam::None 이거 수정!!!!
+// 배틀 결과 검증 함수
 int32 ANewChessGameMode::CheckBattleResult()
 {
 	// 이전 호출한 플레이가 체크 중일때
@@ -1090,4 +1090,176 @@ void ANewChessGameMode::PlayGlobalFade()
 	}
 }
 
+/////////////////// 디버그 코드 ///////////////////
 
+void ANewChessGameMode::DebugChangeToBettingPhase(int32 AttackerIndex, int32 DefenderIndex)
+{
+#if !UE_BUILD_SHIPPING
+	AChessGameState* GS = GetGameState<AChessGameState>();
+	if (!GS) return;
+
+	// 배틀 중 일때
+	if (GS->isBattle)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("You cannot proceed to the betting phase during a battle."));
+		return;
+	}
+
+	// 체스 판의 범위를 넘어 지정했을 때.
+	if (0 > AttackerIndex || AttackerIndex >= 64 || 0 > DefenderIndex || DefenderIndex >= 64)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("It has gone beyond the boundaries of the chessboard."));
+		return;
+	}
+
+	GS->Attacker = GS->ChessPieces[AttackerIndex];
+	GS->Defender = GS->ChessPieces[DefenderIndex];
+
+	// 지정된 범위에 체스말이 없을때
+	if (GS->Attacker == NULL || GS->Defender == NULL)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("There is no chess piece at the specified location."));
+		return;
+	}
+
+	// 같은 팀 말끼리 전투를 붙혔을 때
+	if (GS->Attacker->Team == GS->Defender->Team)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("You cannot battle against members of the same team."));
+		GS->Attacker = NULL;
+		GS->Defender = NULL;
+		return;
+	}
+
+	GS->BattleIndex = GS->Defender->OwnIndex;
+	
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			3.0f,
+			FColor::Green,
+			TEXT("Change to BettingPhase")
+		);
+	}
+
+	ChangeGamePhase(EGamePhase::BettingPhase);
+#endif
+}
+
+void ANewChessGameMode::DebugChangeToBattlePhase(int32 AttackerIndex, int32 DefenderIndex, float AttackerBattleTime, float DefenderBattleTime)
+{
+#if !UE_BUILD_SHIPPING
+	AChessGameState* GS = GetGameState<AChessGameState>();
+	if (!GS) return;
+
+	// 배틀 중이거나, 배팅 중인 경우
+	if (GS->isBattle)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("You are currently in battle or placing a bet."));
+		return;
+	}
+	
+	GS->isBattle = true;
+
+	// 체스 판의 범위를 넘어 지정했을 때.
+	if (0 > AttackerIndex || AttackerIndex >= 64 || 0 > DefenderIndex || DefenderIndex >= 64)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("It has gone beyond the boundaries of the chessboard."));
+		return;
+	}
+
+	GS->Attacker = GS->ChessPieces[AttackerIndex];
+	GS->Defender = GS->ChessPieces[DefenderIndex];
+	
+
+	// 지정된 범위에 체스말이 없을때
+	if (GS->Attacker == NULL || GS->Defender == NULL)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("There is no chess piece at the specified location."));
+		return;
+	}
+
+	// 같은 팀 말끼리 전투를 붙혔을 때
+	if (GS->Attacker->Team == GS->Defender->Team)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("You cannot battle against members of the same team."));
+		GS->Attacker = NULL;
+		GS->Defender = NULL;
+		return;
+	}
+
+	// 백팀, 흑팀 남은 시간보다 많은 시간을 지정하거나, 음수로 배틀 시간을 지정 할려고 할때
+	if (GS->Attacker->Team == EChessTeam::White)
+	{
+		
+		if (0 > AttackerBattleTime || AttackerBattleTime > GS->WhiteRemainTime || 0 > DefenderBattleTime || DefenderBattleTime > GS->BlackRemainTime)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("You cannot bet more time than the remaining time."));
+			return;
+		}
+
+		GS->WhiteBattleTime = AttackerBattleTime;
+		GS->BlackBattleTime = DefenderBattleTime;
+
+	}
+	else
+	{
+		if (0 > AttackerBattleTime || AttackerBattleTime > GS->BlackRemainTime || 0 > DefenderBattleTime || DefenderBattleTime > GS->WhiteRemainTime)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("You cannot bet more time than the remaining time."));
+			return;
+		}
+
+		GS->WhiteBattleTime = DefenderBattleTime;
+		GS->BlackBattleTime = AttackerBattleTime;
+	}
+
+	ChangeGamePhase(EGamePhase::PreBattlePhase);
+
+#endif
+}
+
+void ANewChessGameMode::DebugEndBattle(bool bAttackerWin)
+{
+#if !UE_BUILD_SHIPPING
+	AChessGameState* GS = GetGameState<AChessGameState>();
+	if (!GS) return;
+
+	// 배틀 중이 아닐때
+	if (!GS->isBattle)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("You are not currently in a battle."));
+		return;
+	}
+	
+	if (bAttackerWin)
+	{
+		if (GS->Defender)
+		{
+			GS->Defender->CurrentHP = 0;
+		}
+	}
+	else
+	{
+		if (GS->Attacker)
+		{
+			GS->Attacker->CurrentHP = 0;
+		}
+	}
+
+	ChangeGamePhase(EGamePhase::EndBattlePhase);
+#endif
+}
+
+void ANewChessGameMode::DebugEndGame(EChessTeam WinnerTeam)
+{
+#if !UE_BUILD_SHIPPING
+	AChessGameState* GS = GetGameState<AChessGameState>();
+	if (!GS) return;
+
+	GameResult = WinnerTeam;
+
+	ChangeGamePhase(EGamePhase::GameEndPhase);
+#endif
+}

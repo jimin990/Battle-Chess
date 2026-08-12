@@ -19,6 +19,7 @@
 #include "UI/OpeningWidget.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/DebugUserWidget.h"
 
 AMyChessPlayerController::AMyChessPlayerController()
 {
@@ -35,25 +36,6 @@ void AMyChessPlayerController::BeginPlay()
         IsLocalController(),
         (int32)GetNetMode()
     );
-
-    // 게임으로 들어갈때는 ON
-    //UAsyncLoadingScreenLibrary::SetEnableLoadingScreen(true);
-
-    //TryBindGameState();
-
-    /*if (UWorld* World = GetWorld())
-    {
-        GameStateSetHandle = World->GameStateSetEvent.AddUObject(
-            this,
-            &AMyChessPlayerController::HandleGameStateSet
-        );
-
-        if (AChessGameState* CurrentGameState = Cast<AChessGameState>(World->GetGameState()))
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Cur_GS"));
-            HandleGameStateSet(CurrentGameState);
-        }
-    }*/
 }
 
 void AMyChessPlayerController::PostSeamlessTravel()
@@ -95,10 +77,6 @@ void AMyChessPlayerController::TryBindGameState()
     if (!GS)
     {
         UE_LOG(LogTemp, Warning, TEXT("GS is Not Ready"));
-        /*GetWorldTimerManager().SetTimerForNextTick(
-            this,
-            &AMyChessPlayerController::TryBindGameState);*/
-
         return;
     }
 
@@ -201,6 +179,25 @@ void AMyChessPlayerController::SetWidget()
         OpeningWidget->AddToViewport();
     }
 
+    // 디버그 위젯
+#if !UE_BUILD_SHIPPING
+    if (!DebugWidgetClass)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("DebugWidgetClass is null"));
+        return;
+    }
+
+    DebugWidget = CreateWidget<UDebugUserWidget>(
+        this,
+        DebugWidgetClass);
+
+    if (DebugWidget)
+    {
+        DebugWidget->AddToViewport();
+        DebugWidget->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+#endif
 }
 
 // 나중에 템플릿 함수로 코드 최적화
@@ -214,10 +211,7 @@ void AMyChessPlayerController::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     // 마우스 아래 ISM에 있는 Piece 감지 UI
-
-
     Hover_ChessPiece();
-    
 }
 
 void AMyChessPlayerController::Server_Ready_Implementation()
@@ -245,10 +239,6 @@ void AMyChessPlayerController::BindToChessGameState(AChessGameState* NewGameStat
     if (!NewGameState)
     {
         UE_LOG(LogTemp, Warning, TEXT("GS is Not Ready"));
-        /*GetWorldTimerManager().SetTimerForNextTick(
-            this,
-            &AMyChessPlayerController::TryBindGameState);*/
-
         return;
     }
 
@@ -269,7 +259,6 @@ void AMyChessPlayerController::BindToChessGameState(AChessGameState* NewGameStat
         this,
         &AMyChessPlayerController::GamePhaseChanged);
 
-
     if (IsLocalController())
     {
         SetWidget();
@@ -280,6 +269,15 @@ void AMyChessPlayerController::BindToChessGameState(AChessGameState* NewGameStat
 void AMyChessPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
+
+#if !UE_BUILD_SHIPPING
+    InputComponent->BindKey(
+        EKeys::Q,
+        IE_Pressed,
+        this,
+        &AMyChessPlayerController::ShowDebugWidget
+    );
+#endif
 }
 
 void AMyChessPlayerController::ClickPiece()
@@ -323,9 +321,7 @@ void AMyChessPlayerController::ClickPiece()
     }
 
     // 해당 칸의 말
-    AChessPieceBase* Piece =
-        GS->ChessPieces[TileIndex];
-
+    AChessPieceBase* Piece = GS->ChessPieces[TileIndex];
 
     //현재 선택된 말이 없음
     if (!CurPiece)
@@ -362,7 +358,6 @@ void AMyChessPlayerController::ClickPiece()
 
         return;
     }
-
 
     //현재 선택된 말이 있음
     // 같은 팀 말 클릭
@@ -417,12 +412,9 @@ void AMyChessPlayerController::ClickCancel()
 void AMyChessPlayerController::SelectPiece(AChessPieceBase* Piece)
 {
     ReturnBoardColor();
-    //CurPiece = Piece;
 
     if (IsLocalController())
-    {
-        //UE_LOG(LogTemp, Warning, TEXT("SelectPiece %s"), *Piece->GetName());
-        
+    {        
         ShowPawnMoves(Piece);
     }
 }
@@ -461,11 +453,6 @@ void AMyChessPlayerController::AcknowledgePossession(APawn* P)
 
     if (Cast<AChessCameraPawn>(P))
     {
-        /*UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("AChessCameraPawn"));*/
-
         SetShowMouseCursor(true);
 
         SetInputMode(FInputModeGameAndUI());
@@ -490,17 +477,10 @@ void AMyChessPlayerController::AcknowledgePossession(APawn* P)
         if (CP)
         {
             CP->PossessCon(this);
-
-            //UE_LOG(LogTemp, Warning, TEXT("PossessCon %d"), CP->IsLocallyControlled());
         }
     }
     else
     {
-        /*UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("AChessPiecePawn"));*/
-
         SetShowMouseCursor(false);
 
         SetInputMode(FInputModeGameOnly());
@@ -651,9 +631,6 @@ void AMyChessPlayerController::SetPreGamePhase()
 
     FadeIn();
 
-    // 체스 말 소환 2초 = 예정
-
-    //
     if (OpeningWidget)
     {
         OpeningWidget->PlayOpening();
@@ -771,6 +748,9 @@ void AMyChessPlayerController::HideBettingUI()
 
 void AMyChessPlayerController::SetPreBattlePhase()
 {
+    // 체스 UI 숨기기
+    HideChessGameUI();
+
     // 배팅 UI 숨기기
     HideBettingUI();
 
@@ -779,7 +759,6 @@ void AMyChessPlayerController::SetPreBattlePhase()
 
     //FadeInOut();
 
-    
     // 배틀 스타트 UI ON 3초 카운트 다운
     StartBattleCounter();
 }
@@ -926,6 +905,81 @@ void AMyChessPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProper
     DOREPLIFETIME(AMyChessPlayerController, PlayerTeam);
 }
 
+/////////////////// 디버그 코드 ///////////////////
+
+void AMyChessPlayerController::ShowDebugWidget()
+{
+#if !UE_BUILD_SHIPPING
+    if (!bShowDebugWidget)
+    {
+        if (DebugWidget)
+        {
+            DebugWidget->SetVisibility(ESlateVisibility::Visible);
+            SetShowMouseCursor(true);
+            SetInputMode(FInputModeGameAndUI());
+            bShowDebugWidget = true;
+        }
+    }
+    else
+    {
+        if (DebugWidget)
+        {
+            DebugWidget->SetVisibility(ESlateVisibility::Collapsed);
+            bShowDebugWidget = false;
+            AChessGameState* GS = GetWorld()->GetGameState<AChessGameState>();
+            if (!GS) return;
+
+            if (GS->CurGamePhase == EGamePhase::BattlePhase)
+            {
+                SetShowMouseCursor(false);
+                SetInputMode(FInputModeGameOnly());
+            }
+        }
+    }
+#endif
+}
+
+
+void AMyChessPlayerController::Server_DebugChangeToBettingPhase_Implementation(int32 AttackerIndex, int32 DefenderIndex)
+{
+#if !UE_BUILD_SHIPPING
+    if (ANewChessGameMode* GM = GetWorld()->GetAuthGameMode<ANewChessGameMode>())
+    {
+        GM->DebugChangeToBettingPhase(AttackerIndex, DefenderIndex);
+    }
+#endif
+}
+
+void AMyChessPlayerController::Server_DebugChangeToBattlePhase_Implementation(int32 AttackerIndex, int32 DefenderIndex, float AttackerBattleTime, float DefenderBattleTime)
+{
+#if !UE_BUILD_SHIPPING
+    if (ANewChessGameMode* GM = GetWorld()->GetAuthGameMode<ANewChessGameMode>())
+    {
+        GM->DebugChangeToBattlePhase(AttackerIndex, DefenderIndex, AttackerBattleTime, DefenderBattleTime);
+    }
+#endif
+}
+
+void AMyChessPlayerController::Server_DebugEndBattle_Implementation(bool bAttackerWin)
+{
+#if !UE_BUILD_SHIPPING
+    if (ANewChessGameMode* GM = GetWorld()->GetAuthGameMode<ANewChessGameMode>())
+    {
+        GM->DebugEndBattle(bAttackerWin);
+    }
+#endif
+}
+
+void AMyChessPlayerController::Server_DebugEndGame_Implementation(EChessTeam WinnerTeam)
+{
+#if !UE_BUILD_SHIPPING
+    if (ANewChessGameMode* GM = GetWorld()->GetAuthGameMode<ANewChessGameMode>())
+    {
+        GM->DebugEndGame(WinnerTeam);
+    }
+#endif
+}
+
 void AMyChessPlayerController::Server_MovePiece_Implementation(AChessPieceBase* Piece, int32 MoveIndex)
 {
     if (!Piece) return;
@@ -937,10 +991,10 @@ void AMyChessPlayerController::Server_MovePiece_Implementation(AChessPieceBase* 
         ChessHUDWidget->ClearSelectedPiece();
     }
 
-
     GM->TryMovePiece(Piece, this, MoveIndex);
 }
 
+// 이거 서버로 빼야함 - 검증은 서버에서
 void AMyChessPlayerController::Server_SetBattleTime_Implementation(float NewTime, EChessTeam CheesTeam)
 {
     AChessGameState* GS = GetWorld()->GetGameState<AChessGameState>();

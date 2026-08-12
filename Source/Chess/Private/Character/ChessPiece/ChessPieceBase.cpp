@@ -98,6 +98,12 @@ AChessPieceBase::AChessPieceBase()
 		LookAction = LookActionPtr.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> AttackActionPtr(TEXT("/Game/Chess/ChessGame/ChessPieces/Input/IA_Attack"));
+	if (AttackActionPtr.Succeeded())
+	{
+		AttackAction = AttackActionPtr.Object;
+	}
+
 	static ConstructorHelpers::FObjectFinder<UInputAction> MoveActionPtr(TEXT("/Game/Chess/ChessGame/ChessPieces/Input/IA_Move"));
 	if (MoveActionPtr.Succeeded())
 	{

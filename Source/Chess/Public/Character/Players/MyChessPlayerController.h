@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "System/ChessTypes.h"
-#include "System/BattleInfo.h"
 #include "Core/ChessGameState.h"
 #include "InputActionValue.h"
 #include "MyChessPlayerController.generated.h"
@@ -20,6 +19,7 @@ class UBattleMatchupWidget;
 class UFadeInOutWidget;
 class UBattleHUD;
 class UOpeningWidget;
+class UDebugUserWidget;
 
 // 현재 Hover 중인 Piece의 변경 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
@@ -249,4 +249,30 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_MovePiece(AChessPieceBase* Piece, int32 MoveIndex);
+
+//Debug
+public:
+	UPROPERTY(EditAnywhere, Category = "Debug|UI")
+	TSubclassOf<UDebugUserWidget> DebugWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "Debug|UI")
+	TObjectPtr<UDebugUserWidget> DebugWidget;
+
+	// 배팅 페이즈로 변경  - 전투 중이면 변경 불가.
+	UFUNCTION(Server, Reliable)
+	void Server_DebugChangeToBettingPhase(int32 AttackerIndex, int32 DefenderIndex);
+
+	UFUNCTION(Server, Reliable)
+	void Server_DebugChangeToBattlePhase(int32 AttackerIndex, int32 DefenderIndex, float AttackerBattleTime, float DefenderBattleTime);
+
+	UFUNCTION(Server, Reliable)
+	void Server_DebugEndBattle(bool bAttackerWin);
+
+	UFUNCTION(Server, Reliable)
+	void Server_DebugEndGame(EChessTeam WinnerTeam);
+
+	UFUNCTION()
+	void ShowDebugWidget();
+
+	bool bShowDebugWidget = false;
 };

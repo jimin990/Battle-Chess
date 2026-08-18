@@ -4,7 +4,7 @@
 + 장르 : 2인 멀티 플레이 체스 배틀
 + 엔진 : Unreal Engine 5.7
 + 언어 : C++, Blueprint
-+ 영상 : https://www.youtube.com/watch?v=tC9wKRi5SUg
++ 영상 : [Battle Chess 게임 플레이 영상](https://www.youtube.com/watch?v=tC9wKRi5SUg)
 
 <br>
 
